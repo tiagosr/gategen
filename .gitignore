@@ -1,3 +1,4 @@
 *.rkt~
 **/compiled/drracket/*
 *.rkt#2#
+.DS_Store
