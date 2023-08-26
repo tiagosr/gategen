@@ -2,38 +2,41 @@
 
 (provide 
     ;(except-out (all-from-out racket) #%module-begin)
-    (all-from-out gategen/hdl gategen/lang)
+    (all-from-out gategen/hdl/dsl gategen/lang)
     (rename-out [gategen-module-begin #%module-begin])
-    #%app #%datum #%top)
+    #%app #%datum #%top
+    gateware
+    sig)
 
-(require gategen/hdl
+(require gategen/hdl/dsl
          gategen/lang
          racket
          syntax/parse/define
+         syntax/wrap-modbeg
          (for-syntax racket/syntax
                      syntax/parse
                      syntax/id-set))
 
-(define-syntax-rule (gategen-module-begin expr)
-  (#%module-begin
-   (define top-level (gategen #`expr))
-   (provide top-level)))
+(define sig #f)
 
-(define-syntax-parser gategen
-  [(_ body ...)
-   #`(begin
-       (compile-gateware body) ...
-      )])
+(define-syntax gategen-module-begin (make-wrapping-module-begin #'gategen))
+
+(define-syntax (gategen body)
+  (syntax-parse body
+    #:literals (gateware)
+    [(_ (gateware name:id body ...))
+     #`(println (syntax->datum name))]
+    [(_ form)
+     #`(println form)]
+    [_ #`(begin)]))
 
 
-
-
-(define-for-syntax (gateware form)
+(define-syntax (gateware form)
   (define-splicing-syntax-class param-spec
-    (pattern (~seq (param-id:id default-expr:expr)))
-    (pattern (~seq param-id:id)))
+    (pattern (~or (~seq (param-id:id default-expr:expr))
+                  (~seq param-id:id))))
   (syntax-parse form
-    ((gateware name:id (param:param-spec ...) command:expr ...)
+    ((_ name:id (param:id ...) command:expr ...)
      (define param-id-set (mutable-free-id-set))
      (define signal-id-set (mutable-free-id-set))
      (for-each (lambda (param)
@@ -42,10 +45,12 @@
      (for-each (lambda (command)
                  (collect-signal-ids command signal-id-set))
                (syntax->list #`(command ...)))
-     #`(begin
-         (collect-domains command) ...
-         (collect-assignments command) ...
-         ))))
+     #`(let ([this-module (new module%)])
+         (begin
+           (define (name param ...)
+             (send this-module instantiate name param ...))
+           command ...
+           name)))))
 
 (define-for-syntax (collect-parameters item id-set)
   (syntax-parse item
@@ -60,12 +65,12 @@
     (pattern (~seq width:integer #:unsigned))
     (pattern (~seq width:integer)))
   (syntax-parse item
-    #:literals (sig like signed unsigned)
+    #:literals (sig)
     ((sig name:id)
      (free-id-set-add! id-set #`name))
     ((sig name:id spec:sig-spec)
      (free-id-set-add! id-set #`name))
-    ((sig name:id (like other:id))
+    ((sig name:id #:like other:id)
      (free-id-set-add! id-set #`name))
     (_ (void))))
 
@@ -94,3 +99,5 @@
         ((simulate description:str process-expr:expr ...)
          #`(define submod-id-set (mutable-free-id-set)))
         ))
+
+

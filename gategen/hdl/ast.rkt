@@ -1,6 +1,6 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide duid% signal% operator% value% as-signed as-unsigned)
 
 (define duid%
     (let ([current-id 0])

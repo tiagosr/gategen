@@ -1,6 +1,10 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide fsm%
+         clock-signal%
+         module%
+         signal%
+         signal-key%)
 
 (require gategen/hdl/ast
     racket/dict)
@@ -24,12 +28,20 @@
         (super-new [shape 1])))
 
 (define module%
-    (class object%
-        (field [ctrl-context (null)]
-               [ctrl-stack '()]
-               [driving (make-hash)]
-               [named-submodules (make-hash)])
-        (super-new)))
+  (class object%
+    (field [ctrl-context (null)]
+           [ctrl-stack '()]
+           [driving (make-hash)]
+           [named-submodules (make-hash)]
+           [named-wires (make-hash)]
+           [wires (make-hash)])
+    (define/public (new-signal name width signed? local?)
+      (let ([sig (new signal% [name name] [width width] [signed? signed?])])
+        (hash-set! wires name sig)
+        (unless local?
+          (hash-set! named-wires name sig))
+        sig))
+    (super-new)))
 
 (define signal-key%
     (class object%

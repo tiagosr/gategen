@@ -1,6 +1,6 @@
 #lang s-exp gategen
 
-(gateware alu (divisor)
+(gateware uart-rx (divisor)
     (sig i)
     (sig data width)
     (sig rdy)
@@ -37,5 +37,4 @@
             (if ack
                 [(next-state 'start)]))
         (@ (connect err (= ongoing-state 'error)))
-        (state 'error)
-        ))
+        (state 'error)))
