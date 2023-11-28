@@ -5,14 +5,14 @@
     (sig b width #:signed)
     (sig o (+ width 1) #:signed)
 
-    (@ [= o (+ a b)]))
+    (@ [connect o (+ a b)]))
 
 (gateware subtractor (width)
     (sig a width #:signed)
     (sig b width #:signed)
     (sig o (+ width 1) #:signed)
     
-    (@ [= o (- a b)]))
+    (@ [connect o (- a b)]))
 
 (gateware alu (width)
     (sig op)
@@ -24,10 +24,10 @@
     (subtractor sub [width width])
 
     (@
-        [= add.a a]
-        [= add.b b]
-        [= sub.a a]
-        [= sub.b b]
+        [connect add.a a]
+        [connect add.b b]
+        [connect sub.a a]
+        [connect sub.b b]
         (if (op)
-            ([= o sub.o])
-            ([= o add.o]))))
+            ([connect o sub.o])
+            ([connect o add.o]))))
